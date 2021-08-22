@@ -1,0 +1,10 @@
+# Ignoring executable files
+*.out
+*.exe
+
+# Ignoring swap files
+*.swap
+*.swp
+
+# Ignoring main.c file used for testing purposes
+main.c
