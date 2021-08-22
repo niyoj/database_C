@@ -44,16 +44,10 @@ The commands and its format to be given for the database modules are as follows;
 
 */
 
-/*
-For developers only,
-0 => success,
-1 => failure;
-*/
-
-#include "string.c"
-#include "ui.c"
-#include <stdio.h>
-#include <unistd.h>
+#include "string.c"     //contains functions like explode() and str_join()
+#include <string.h>     //contains functions like strcmp()
+#include <stdio.h>      //contains functions for standard input and output
+#include <unistd.h>     //contains functions remove() and access()
 
 FILE *handle;
 
@@ -66,112 +60,60 @@ int insert_row(char name[], char fields[], char values[]);
 
 //db() function is responsible to interpret the database related commands 
 int db(char cmd[]) {
-    char exploded[256][256];
+    char exploded[256][256];        
+    explode(cmd, ';', exploded);        //exploding the command received with reference to ; 
 
-    explode(cmd, ';', exploded);
-
-    if(str_same(exploded[0], "CREATE TABLE")) {
+    if(!strcmp(exploded[0], "CREATE TABLE")) {      //if command for creating table is recieved
         int status = create_table(exploded[1], exploded[2], exploded[3]);
 
-        if(!status) {
-            ui_success("The table was succefully created");
+        if(status == 2) {
+            printf("Undefined data types.\n");
+        } else if (status ==1) {
+            printf("The table was succefully created.\n");
         } else {
-            ui_warn("The table already exists.");
+            printf("The table already exists.\n");
         }
 
-    } else if(str_same(exploded[0], "DELETE TABLE")) {
-        char delete[256][256];
-        explode(exploded[1], ',', delete);
-
-        for(int i=0; delete[i]!="\0"; i++) {
-            delete_table(delete[i]);
-        }
-
-    } else if(str_same(exploded[0], "DELETE ROW")) {
-        
-    } else if(str_same(exploded[0], "DELETE COLUMN")) {
-    
-    } else if(str_same(exploded[0], "INSERT ROW")) {
-        insert_row(exploded[1], exploded[2], exploded[3]);
-    } else if(str_same(exploded[0], "UPDATE ROW")) {
-    
-    } else if(str_same(exploded[0], "GET ROW")) {
-
-    } else {
-        return 0;
     }
 
     return 1;
 }
 
+//function `create_table()` is used to create a table
 int create_table(char name[], char fields[], char datatypes[]) {
     char src[256];
-    str_join("./.db/tables/", name, src);
+    strcpy(src, "./.db/tables/");
+    strcat(src, name);                      //setting the src
 
-    if(table_exists(name)) return 1;
+    if(table_exists(name)) {
+        return 0;                           //if table already exists
+    }
 
-    handle = fopen(src, "w");
-    fprintf(handle, "%s", fields);
-    fprintf(handle, "\n%s", datatypes);
-    fclose(handle);
-
-    return 0;
-}
-
-//function delete_table() can be used to delete a table from the database
-int delete_table(char name[]) {
-    char delete_src[256];
-    str_join("./.db/tables/", name, delete_src);       //to be deleted file
-
-    if(remove(delete_src) == 0) return 0; else return 1;
-}
-
-//INSERT ROW;<TABLE_NAME>;<FIELD_NAME>,<FIELD_NAME>,...;<VALUE>,<VALUE>,...
-int insert_row(char name[], char fields[], char values[]) {
+    handle = fopen(src, "w");               //creating a file inside.db/tables
+    fprintf(handle, "%s\n", fields);        //printing the first line which is fields
     
-    if(!table_exists(name)) return 2;               //if table doesnot exists at all
+    char datas[256][256];
+    explode(datatypes, ',', datas);
 
-    char src[256], c, str[256], fields_array[256][256], values_array[256][256];
-    int num_line=1, i=0;
-    str_join("./.db/tables/", name, src);
-    explode(fields, ',', fields_array);
-    explode(values, ',', values_array);
-    
-    handle = fopen(src, "r+");
-
-    while ((c = fgetc(handle)) != EOF) {
-        if(num_line == 1) {
-            str[i] = c;
-            i++;
+    for(int i=0; datas[i][0]!='\0'; i++) {  //checking if the datatypes are valid or not
+        if(strcmp(datas[i], "int") == 0 || strcmp(datas[i], "string")) {
+            continue;
+        } else {
+            return 2;           //if the data type was undefined
         }
-        if (c == '\n') num_line++;
-    }    
+    }
 
-    
-    
+    fprintf(handle, "%s", datatypes);       //adds the datatypes of fields in line 2
+    fclose(handle); 
 
-    printf("%s", str);
-    return 0;
+    return 1;
 }
 
-int update_table() {
-    printf("Updated the table");
-}
-
-int get_table() {
-    printf("Got the table");
-}
-
+//function `table_exists()` is used to check whether the table exists or not inside database tables 
 int table_exists(char name[]) {
-    char src[256];
-    str_join("./.db/tables/", name, src);
+    char src[256];                                          //stores the src of the file
+    strcat(src, "./.db/tables/");                           //preparing the src
+    strcat(src, name);                                      
 
-    if(access(src, F_OK) == 0) return 1; else return 0;
-}
-
-int main(void) {
-    //db("CREATE TABLE;keys;s.n.,username,public key,common key;autonumber int, string, string, string");
-    db("INSERT ROW;keys;s.n.,username,public_key,common_key;,someone,123,456");
-    //delete_table('\0');
-    return 0;
+    if(access(src, F_OK) == 0) return 1; else return 0;     //returns 1 if file exists
 }
