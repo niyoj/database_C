@@ -60,10 +60,10 @@ FILE *handle;
 
 //db() function is responsible to interpret the database related commands 
 int db(char cmd[]) {
-    char exploded[256][256];        
+    char exploded[256][256] = {};        
     explode(cmd, ';', exploded);        //exploding the command received with reference to ; 
 
-    if(!strcmp(exploded[0], "CREATE TABLE")) {      //if command for creating table is recieved
+    if(strcmp(exploded[0], "CREATE TABLE") == 0) {      //if command for creating table is recieved
         int status = create_table(exploded[1], exploded[2], exploded[3]);
 
         if(status == 2) {
@@ -73,7 +73,27 @@ int db(char cmd[]) {
         } else {
             printf("The table already exists.\n");
         }
+    } else if (strcmp(exploded[0], "DELETE TABLE") == 0) {
+        if (strcmp(exploded[1], "ALL") == 0) {
+            char src[256];
+            strcpy(src, DB);
+            strcat(src, "tables");
 
+            //create a file where every table names are entered and from the name delete
+        } else {
+            char tables[256][256] = {};
+            explode(exploded[1], ',', tables);
+    
+            for(int i=0; tables[i][0] != '\0'; i++) {
+                int status = delete_table(tables[i]);
+
+                if(!status) {
+                    printf("The table was not deleted.\n");
+                }
+            }
+        }
+    } else {
+        printf("Please check your command and try again.\n");
     }
 
     return 1;
@@ -81,7 +101,7 @@ int db(char cmd[]) {
 
 //function `table_exists()` is used to check whether the table exists or not inside database tables 
 int table_exists(char name[]) {
-    char src[256];                          //stores the src of the file
+    char src[256] = {};                          //stores the src of the file
     strcat(src, DB);                        //preparing the src
     strcat(src, "tables/");
     strcat(src, name);                                      
@@ -91,7 +111,7 @@ int table_exists(char name[]) {
 
 //function `create_table()` is used to create a table
 int create_table(char name[], char fields[], char datatypes[]) {
-    char src[256];
+    char src[256] = {};
     strcpy(src, DB);
     strcpy(src, "tables/");
     strcat(src, name);                      //setting the src
@@ -103,7 +123,7 @@ int create_table(char name[], char fields[], char datatypes[]) {
     handle = fopen(src, "w");               //creating a file inside.db/tables
     fprintf(handle, "%s\n", fields);        //printing the first line which is fields
     
-    char datas[256][256];
+    char datas[256][256] = {};
     explode(datatypes, ',', datas);
 
     for(int i=0; datas[i][0]!='\0'; i++) {  //checking if the datatypes are valid or not
@@ -118,4 +138,19 @@ int create_table(char name[], char fields[], char datatypes[]) {
     fclose(handle); 
 
     return 1;
+}
+
+//function `delete_table()` is used to delete tables
+int delete_table(char name[]) {
+    char src[256] = {};
+    strcpy(src, ".db/tables/");            //setting up the 
+    //strcat(src, "tables/");
+    strcat(src, name);
+
+
+    if(!table_exists(name)) {
+        return 0;
+    } else {
+        if(remove(src) == 0) return 1; else return 0;
+    }
 }
