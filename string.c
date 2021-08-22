@@ -22,31 +22,3 @@ int explode(char string[], char separator, char retrn[][256]) {
         i++;
     }    
 }
-
-//function compare_str() is used to check wether the given two strings are same or not. returns 1 of same
-int str_same(char str1[], char str2[]) {
-    char *p1, *p2;
-    
-    p1 = str1;
-    p2 = str2;
-    
-    for(; *p1 != '\0'; ++p1) {
-        if(*p2 != *p1) {
-            return 0;
-        }
-        ++p2;
-    } 
-
-    return 1;
-}
-
-//function str_join() is used to concatentate two strings
-void str_join(char str1[], char str2[], char joined[]) {
-    int i=0;
-    for(; str1[i] != '\0'; i++) {
-        joined[i] = str1[i];
-    }
-    for(int j=0; str2[j] != '\0'; j++) {
-        joined[i+j] = str2[j];
-    }
-}
