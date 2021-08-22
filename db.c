@@ -14,13 +14,7 @@ The commands and its format to be given for the database modules are as follows;
     * To be  noted that, the fieldname can contain only 0 to 1, _, A to Z or a to z.
     * The data-types can be;
         * INT :- integer type
-        //* BOOLEAN :- 0 or 1
         * STRING :- string type
-        //* DATETIME :- date and time in format DD:MM:YYYY/HH:MM:SS(Note that the timestamp is 24 hour format) 
-        //* DATE :- date type in format DD:MM:YYYY
-        //* TIME :- time in format HH:MM:SS (in 24 hour format)
-        //* FILE :- absolute path to the file
-
     * Note you can use keywords like PRIMARY and AUTO, with the datatype in order to declare it as a primary a key and autonumber respectively.
 
 # For Deleting Table and Table Field
@@ -44,19 +38,25 @@ The commands and its format to be given for the database modules are as follows;
 
 */
 
-#include "string.c"     //contains functions like explode() and str_join()
+//including section for standard header files
 #include <string.h>     //contains functions like strcmp()
 #include <stdio.h>      //contains functions for standard input and output
 #include <unistd.h>     //contains functions remove() and access()
 
+//including section for user-defined header files
+#include "string.c"     //contains functions like explode() and str_join()
+
+//function prototype section
+int db(char []);;
+int table_exists(char []);
+int create_table(char [], char [], char []);
+int delete_table(char name[]);
+int insert_row(char name[], char fields[], char values[]);
+
+//definition section
+#define DB "./.db/"
 FILE *handle;
 
-int create_table(char[], char[], char[]);
-int db(char cmd[]);
-int create_table(char name[], char fields[], char datatypes[]);
-int delete_table(char name[]);
-int table_exists(char name[]);
-int insert_row(char name[], char fields[], char values[]);
 
 //db() function is responsible to interpret the database related commands 
 int db(char cmd[]) {
@@ -79,10 +79,21 @@ int db(char cmd[]) {
     return 1;
 }
 
+//function `table_exists()` is used to check whether the table exists or not inside database tables 
+int table_exists(char name[]) {
+    char src[256];                          //stores the src of the file
+    strcat(src, DB);                        //preparing the src
+    strcat(src, "tables/");
+    strcat(src, name);                                      
+
+    if(access(src, F_OK) == 0) return 1; else return 0;     //returns 1 if file exists
+}
+
 //function `create_table()` is used to create a table
 int create_table(char name[], char fields[], char datatypes[]) {
     char src[256];
-    strcpy(src, "./.db/tables/");
+    strcpy(src, DB);
+    strcpy(src, "tables/");
     strcat(src, name);                      //setting the src
 
     if(table_exists(name)) {
@@ -107,13 +118,4 @@ int create_table(char name[], char fields[], char datatypes[]) {
     fclose(handle); 
 
     return 1;
-}
-
-//function `table_exists()` is used to check whether the table exists or not inside database tables 
-int table_exists(char name[]) {
-    char src[256];                                          //stores the src of the file
-    strcat(src, "./.db/tables/");                           //preparing the src
-    strcat(src, name);                                      
-
-    if(access(src, F_OK) == 0) return 1; else return 0;     //returns 1 if file exists
 }
