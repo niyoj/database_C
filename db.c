@@ -102,7 +102,7 @@ int db(char cmd[]) {
 //function `table_exists()` is used to check whether the table exists or not inside database tables 
 int table_exists(char name[]) {
     char src[256] = {};                          //stores the src of the file
-    strcat(src, DB);                        //preparing the src
+    strcat(src, DB);                             //preparing the src
     strcat(src, "tables/");
     strcat(src, name);                                      
 
@@ -113,7 +113,7 @@ int table_exists(char name[]) {
 int create_table(char name[], char fields[], char datatypes[]) {
     char src[256] = {};
     strcpy(src, DB);
-    strcpy(src, "tables/");
+    strcat(src, "tables/");
     strcat(src, name);                      //setting the src
 
     if(table_exists(name)) {
@@ -143,14 +143,24 @@ int create_table(char name[], char fields[], char datatypes[]) {
 //function `delete_table()` is used to delete tables
 int delete_table(char name[]) {
     char src[256] = {};
-    strcpy(src, ".db/tables/");            //setting up the 
-    //strcat(src, "tables/");
+    strcpy(src, DB);            //setting up the src
+    strcat(src, "tables/");
     strcat(src, name);
 
 
-    if(!table_exists(name)) {
+    if(!table_exists(name)) {       //checking if table exists or not
         return 0;
     } else {
-        if(remove(src) == 0) return 1; else return 0;
+        if(remove(src) == 0) return 1; else return 0;       //if exists deleteing the file using remove()
     }
+}
+
+//function `insert_row()` is used to insert the row of tables
+int insert_row(char name[], char fields[], char values[]) {
+    char src[256] = {};
+    strcpy(src, DB);
+
+    
+
+    return 1;
 }
