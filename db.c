@@ -1,7 +1,7 @@
 /******************************************************************************************************
 *   Program name: db.c,
-*   Author name: NiyojOli(THA077BCT029),
-*   Created Path: /modules/db.c,
+*   Author name: NiyojOli,
+*   Created Path: /db.c,
 *   Created Date: 08 Aug 2021, 12:21:10 (DD MON YYYY, HH:MM:SS),
 *   Description: This  program acts as the database module and consists of function to interact with database module.
 *******************************************************************************************************/
@@ -92,7 +92,13 @@ int db(char cmd[]) {
                 }
             }
         }
-    } else {
+    } else if(strcmp(exploded[0], "INSERT ROW") == 0){
+        int status = insert_row(exploded[1], exploded[2], exploded[3]); 
+
+        if(status == 2) {
+            printf("The table doesnot exists");
+        }
+    }else {
         printf("Please check your command and try again.\n");
     }
 
@@ -157,10 +163,70 @@ int delete_table(char name[]) {
 
 //function `insert_row()` is used to insert the row of tables
 int insert_row(char name[], char fields[], char values[]) {
-    char src[256] = {};
+    char src[256] = {}, insert[256] = {};
+    char header[256] = {}, data[256] = {};
+    char e_header[256][256], e_data[256][256], e_fields[256][256], e_val[256][256];
+
     strcpy(src, DB);
+    strcat(src, "tables/");
+    strcat(src, name);                  //preparing path of the table
 
+    if(!table_exists(name)) {
+        return 2;                       //if table doesnot exists
+    }
+
+    handle = fopen(src, "r+");          //opening the file in append mode
     
+    int j = 0, k = 0;
+    char ch;
+    while(1) {                          //getting table header and datatypes
+        ch = fgetc(handle);
 
+        if(ch == EOF) break;
+
+        if(ch != '\n') {                //if current position character is not equal to new line  character
+            if(k == 0) {
+                 header[j] = ch;        //for first line when no \n is encountered update varaible `header`
+            } else {
+                 data[j] = ch;          //for second line when \n is found once update `data` variable
+            }
+            j++;                        //next position of header and data variable
+        } else {
+            k++;                        //if new line is found 
+            j = 0;                      //resetting the position
+        }
+
+        if(k == 2) break;               //if two lines are fetched breaks the loop
+    }
+
+    fseek(handle, 0, SEEK_END);         //seeking the pointer to the end of the  file
+    fprintf(handle, "\n");
+
+    explode(header, ',', e_header);     //converting all string varaibles to arrays
+    explode(data, ',', e_data);
+    explode(fields, ',', e_fields);
+    explode(values, ',', e_val);
+    
+    for(int i=0; e_header[i][0] != '\0'; i++) {             //finding the order in which values are entered
+        int found = 0;                                      //use to store wethere the table header value is passed or not
+        for(int j=0; e_fields[j][0] != '0'; j++) {
+            if(strcmp(e_header[i], e_fields[j]) == 0) {     //if table header and the field value supplied matches
+                strcat(insert, e_val[j]);
+                
+                if(e_header[i+1][0] != '\0') {
+                    strcat(insert, ",");                    //if last table field then don't include extra comma , 
+                }
+                
+                found = 1;
+            }
+        }
+        if(!found) {
+            strcat(insert, ",");
+        }
+    }
+
+    fprintf(handle, "%s", insert);              //storing the values in the file
+
+    fclose(handle);
     return 1;
 }
