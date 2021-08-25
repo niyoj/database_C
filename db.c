@@ -15,7 +15,7 @@ The commands and its format to be given for the database modules are as follows;
     * The data-types can be;
         * INT :- integer type
         * STRING :- string type
-    * Note you can use keywords like PRIMARY and AUTO, with the datatype in order to declare it as a primary a key and autonumber respectively.
+    * Note you can use keywords like `primary` and `autonumber`, with the datatype in order to declare it as a primary a key and autonumber respectively.
 
 # For Deleting Table and Table Field
 * DELETE TABLE;<TABLE_NAME>,<TABLE_NAME>
@@ -32,9 +32,9 @@ The commands and its format to be given for the database modules are as follows;
 * UPDATE ROW;<TABLE_NAME>;WHERE;<FIELD_NAME>;<VALUE>;OR;<FIELD_NAME>;<VALUE>;UPDATE;<FIELD_NAME>,<FIELD_NAME>,...;<VALUE>,<VALUE>,...
 
 # For Retriving a Row
-* GET ROW;<TABLE_NAME>;WHERE;<FIELD_NAME>;<VALUE>;UPDATE;<FIELD_NAME>,<FIELD_NAME>,...
-* GET ROW;<TABLE_NAME>;WHERE;<FIELD_NAME>;<VALUE>;AND;<FIELD_NAME>;<VALUE>;UPDATE;<FIELD_NAME>,<FIELD_NAME>,...
-* GET ROW;<TABLE_NAME>;WHERE;<FIELD_NAME>;<VALUE>;OR;<FIELD_NAME>;<VALUE>;UPDATE;<FIELD_NAME>,<FIELD_NAME>,...
+* GET ROW;<TABLE_NAME>;WHERE;<FIELD_NAME>;<VALUE>
+* GET ROW;<TABLE_NAME>;WHERE;<FIELD_NAME>;<VALUE>;AND;<FIELD_NAME>;<VALUE>
+* GET ROW;<TABLE_NAME>;WHERE;<FIELD_NAME>;<VALUE>;OR;<FIELD_NAME>;<VALUE>
 
 */
 
@@ -46,20 +46,33 @@ The commands and its format to be given for the database modules are as follows;
 //including section for user-defined header files
 #include "string.c"     //contains functions like explode() and str_join()
 
+//structures definition section here
+struct Table_element {  //this stucture is used to return the affected rows and their values
+    char header[1000];
+    char values[1000];
+};
+
+typedef struct Table_element FIELD;
+
 //function prototype section
-int db(char []);;
+FIELD db(char []);
 int table_exists(char []);
 int create_table(char [], char [], char []);
-int delete_table(char name[]);
-int insert_row(char name[], char fields[], char values[]);
+int delete_table(char []);
+int insert_row(char [], char [], char []);
+int get_row(char [], char []);
+
 
 //definition section
 #define DB "./.db/"
 FILE *handle;
 
-
 //db() function is responsible to interpret the database related commands 
-int db(char cmd[]) {
+FIELD db(char cmd[]) {
+    FIELD retrn;                        //the returning structure identifier
+    strcpy(retrn.header, "");           //getting rid of the garabage values
+    strcpy(retrn.values, "");
+
     char exploded[256][256] = {};        
     explode(cmd, ';', exploded);        //exploding the command received with reference to ; 
 
@@ -70,6 +83,10 @@ int db(char cmd[]) {
             printf("Undefined data types.\n");
         } else if (status ==1) {
             printf("The table was succefully created.\n");
+            strcpy(retrn.header, exploded[2]);          //returning structures with the rows affected details
+            strcpy(retrn.values, exploded[3]);
+
+            return retrn;
         } else {
             printf("The table already exists.\n");
         }
@@ -98,11 +115,39 @@ int db(char cmd[]) {
         if(status == 2) {
             printf("The table doesnot exists");
         }
+    } else if(strcmp(exploded[0], "GET ROW") == 0) {
+        char condition[256] = {};
+        
+        int start=0;
+        for(int i=0; exploded[i][0] != '\0'; ++i) {         //getting the conditions only from the command
+            if(strcmp(exploded[i], "WHERE") == 0) {
+                start = 1;
+                continue;
+            }
+
+            if(strcmp(exploded[i], "AND") == 0 || strcmp(exploded[i], "OR") == 0) {
+                start = 1;
+                continue;
+            }
+
+            if(start<=2 && start!=0) {
+                strcat(condition, exploded[i]);
+                strcat(condition, ",");
+                start++;
+                continue;
+            }
+
+            if(start>2) {
+                break;
+            }
+        }
+        condition[strlen(condition)-1] = '\0';              //removing the last comma
+
+        //int status = get_row(exploded[1], condition);
     }else {
         printf("Please check your command and try again.\n");
     }
-
-    return 1;
+    return retrn;
 }
 
 //function `table_exists()` is used to check whether the table exists or not inside database tables 
@@ -152,7 +197,6 @@ int delete_table(char name[]) {
     strcpy(src, DB);            //setting up the src
     strcat(src, "tables/");
     strcat(src, name);
-
 
     if(!table_exists(name)) {       //checking if table exists or not
         return 0;
@@ -228,5 +272,11 @@ int insert_row(char name[], char fields[], char values[]) {
     fprintf(handle, "%s", insert);              //storing the values in the file
 
     fclose(handle);
+    return 1;
+}
+
+//function `update_row()` is used to update an existing row in the table
+int get_row(char name[], char condition[]) {
+    
     return 1;
 }
