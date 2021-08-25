@@ -49,7 +49,7 @@ The commands and its format to be given for the database modules are as follows;
 //structures definition section here
 struct Table_element {  //this stucture is used to return the affected rows and their values
     char header[256];
-    char values[256];
+    char values[10000];
 };
 
 typedef struct Table_element FIELD;
@@ -292,74 +292,88 @@ int insert_row(char name[], char fields[], char values[]) {
 * Note: You can use function `explode()` present in `string.c` file to separate the header and values. 
 */
 FIELD get_row(char name[], char condition[]) {
-    FIELD retrn;
+    FIELD retrn;                        //stores the header and the matched row datas
     strcpy(retrn.header, "");
     strcpy(retrn.values, "");
 
     char src[256] = {}, header[256] = {}, values[256] = {};
-    char e_header[256][256] = {}, e_val[256][256] = {}, e_case[256][256] = {};
-    explode(condition, ',', e_case);
+    strcpy(values, "");
 
-    strcpy(src, DB);
+    strcpy(src, DB);            //setting up the path of table
     strcat(src, "tables/");
     strcat(src, name);
 
     handle = fopen(src, "r");
+    
     if(handle == NULL) {
         printf("Error while acessing the database from get_row() function");
     }
-    
-    int is_and = 0;
-    if(condition[strlen(condition)] == ';') {
-        is_and = 1;
+
+    int i=0;
+    while(1) {                              //getting header of the table
+        char ch = fgetc(handle);
+        if(ch == '\n') break;
+        header[i] = ch;
+        i++;
     }
 
-    for(int k=0; e_case[k][0] != ';' && e_case[k][0] != ':'; k+=2) {
-        int line=1, i=0;
-        while (1) {
-            char ch = fgetc(handle);
-            int pos = 0;
+    strcpy(retrn.header, header);           //assigning the header information to return strucutre member
+    fseek(handle, 0, SEEK_SET);             //points file pointer to start of the file
 
-            if(ch == EOF || ch == '\n') {
-                if(line>2) {
-                    explode(values, ',', e_val);
-                    
-                    for(int j=0; e_header[j][0] != '\0'; j++) {
-                        if(strcmp(e_case[k], e_header[j]) == 0) {
-                            pos = j+1;
-                            break;
-                        }
-                    }
+    char e_header[256][256] = {}, e_case[256][256] = {};
+    explode(header, ',', e_header);
+    explode(condition, ',', e_case);
 
-                    if(strcmp(e_case[k+1], e_val[pos-1]) == 0) {
-                        strcpy(retrn.values, values);
-                        return retrn;
-                    }
-                }
-                
-                if(ch == '\n'){
-                    line++;
-                    i = 0;
-                }
+    for(int i=0; e_case[i][0] != ';' && e_case[i][0] != ':'; i+=2) {    //repeat until the condition statement is evaluated completely
+        int lines = 0;
+        int pos = 0;
 
-                if(ch == EOF) break;                        //if end of file every row is checked so exit the for loop
-                if(ch == '\n') strcpy(values, "");          //if new line character, then new row starts
+        for(int j=0; e_header[j][0] != '\0'; j++) {           //determines the postion of column to evaluate
+            if (strcmp(e_case[i], e_header[j]) == 0) {
+                pos = j;
+            }
+        }
+
+        int j = 0;
+        char e_val[256][256] = {};
+
+        while(1) {
+            char ch = fgetc(handle);                            //getting the characters one by one from the table
+              
+            if(lines<2) {
+                if(ch == '\n') lines++;                         //ignoring the first and second row of the table
+                continue;
             }
 
-            if(line == 1){
-                header[i] = ch;
-                i++;
-            } else if (line == 2) {
-                if(e_header[0][0] != header[0]) {
-                    explode(header, ',', e_header);
-                    strcpy(retrn.header, header);    
+            if(ch == '\n' || ch == EOF) {
+                j = 0;
+                
+                explode(values, ',', e_val);
+                if(strcmp(e_val[pos], e_case[i+1]) == 0) {      //checking whether the test case given matches the data in the row
+                    strcat(retrn.values, values);
+                    strcat(retrn.values, ":");
+
+                    if(ch == EOF) break; else continue;
                 }
-                continue;
+
+                if(ch == EOF) break;
+                strcpy(values, "");
+                
+                for(int z=0; z<256; z++) {                  //clearing  the garbage values in e_val
+                    for(int zz=0; zz<256; zz++) {
+                        e_val[z][zz] = '\0';
+                    }
+                }
+
             } else {
-                values[i] = ch; 
-                i++;
+                values[j] = ch;
+                values[j+1] = '\0';
+                j++;
             }
         }
     }
-    //return 1;
+
+    retrn.values[strlen(retrn.values)-1] = '\0';           //removing : from the end
+    
+    return retrn;
 }
