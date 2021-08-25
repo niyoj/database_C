@@ -48,8 +48,8 @@ The commands and its format to be given for the database modules are as follows;
 
 //structures definition section here
 struct Table_element {  //this stucture is used to return the affected rows and their values
-    char header[1000];
-    char values[1000];
+    char header[256];
+    char values[256];
 };
 
 typedef struct Table_element FIELD;
@@ -60,7 +60,7 @@ int table_exists(char []);
 int create_table(char [], char [], char []);
 int delete_table(char []);
 int insert_row(char [], char [], char []);
-int get_row(char [], char []);
+FIELD get_row(char [], char []);
 
 
 //definition section
@@ -118,7 +118,7 @@ FIELD db(char cmd[]) {
     } else if(strcmp(exploded[0], "GET ROW") == 0) {
         char condition[256] = {};
         
-        int start=0;
+        int start=0, is_and = 0;
         for(int i=0; exploded[i][0] != '\0'; ++i) {         //getting the conditions only from the command
             if(strcmp(exploded[i], "WHERE") == 0) {
                 start = 1;
@@ -127,6 +127,11 @@ FIELD db(char cmd[]) {
 
             if(strcmp(exploded[i], "AND") == 0 || strcmp(exploded[i], "OR") == 0) {
                 start = 1;
+                
+                if(strcmp(exploded[i], "AND") == 0) {
+                    is_and = 1;
+                }
+
                 continue;
             }
 
@@ -141,9 +146,13 @@ FIELD db(char cmd[]) {
                 break;
             }
         }
-        condition[strlen(condition)-1] = '\0';              //removing the last comma
+        if(is_and) {
+            condition[strlen(condition)] = ';';              //semi-colon denotes the end of AND condition statement
+        } else {
+            condition[strlen(condition)] = ':';              //semi-colon denotes the end of OR condition statement
+        }
 
-        //int status = get_row(exploded[1], condition);
+        retrn = get_row(exploded[1], condition);
     }else {
         printf("Please check your command and try again.\n");
     }
@@ -275,8 +284,82 @@ int insert_row(char name[], char fields[], char values[]) {
     return 1;
 }
 
-//function `update_row()` is used to update an existing row in the table
-int get_row(char name[], char condition[]) {
+/* 
+* function `get_row()` is used to get an existing row in the table in form of structure.
+* the rerturning structure has to variable members `header` and `values`.
+* `header` consists of the header of table joined together by a semicolon ";".
+* `values` consists of corresponding header values of the particualar row joined together by semicolon ";"
+* Note: You can use function `explode()` present in `string.c` file to separate the header and values. 
+*/
+FIELD get_row(char name[], char condition[]) {
+    FIELD retrn;
+    strcpy(retrn.header, "");
+    strcpy(retrn.values, "");
+
+    char src[256] = {}, header[256] = {}, values[256] = {};
+    char e_header[256][256] = {}, e_val[256][256] = {}, e_case[256][256] = {};
+    explode(condition, ',', e_case);
+
+    strcpy(src, DB);
+    strcat(src, "tables/");
+    strcat(src, name);
+
+    handle = fopen(src, "r");
+    if(handle == NULL) {
+        printf("Error while acessing the database from get_row() function");
+    }
     
-    return 1;
+    int is_and = 0;
+    if(condition[strlen(condition)] == ';') {
+        is_and = 1;
+    }
+
+    for(int k=0; e_case[k][0] != ';' && e_case[k][0] != ':'; k+=2) {
+        int line=1, i=0;
+        while (1) {
+            char ch = fgetc(handle);
+            int pos = 0;
+
+            if(ch == EOF || ch == '\n') {
+                if(line>2) {
+                    explode(values, ',', e_val);
+                    
+                    for(int j=0; e_header[j][0] != '\0'; j++) {
+                        if(strcmp(e_case[k], e_header[j]) == 0) {
+                            pos = j+1;
+                            break;
+                        }
+                    }
+
+                    if(strcmp(e_case[k+1], e_val[pos-1]) == 0) {
+                        strcpy(retrn.values, values);
+                        return retrn;
+                    }
+                }
+                
+                if(ch == '\n'){
+                    line++;
+                    i = 0;
+                }
+
+                if(ch == EOF) break;                        //if end of file every row is checked so exit the for loop
+                if(ch == '\n') strcpy(values, "");          //if new line character, then new row starts
+            }
+
+            if(line == 1){
+                header[i] = ch;
+                i++;
+            } else if (line == 2) {
+                if(e_header[0][0] != header[0]) {
+                    explode(header, ',', e_header);
+                    strcpy(retrn.header, header);    
+                }
+                continue;
+            } else {
+                values[i] = ch; 
+                i++;
+            }
+        }
+    }
+    //return 1;
 }
