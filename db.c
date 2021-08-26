@@ -383,45 +383,44 @@ FIELD get_row(char name[], char condition[]) {
     int is_and = (condition[strlen(condition)-1] == ';')? 1 : 0;
     
 
-    // char ref[256][10000] = {};
     char ret_val[10000] = {};
-    // while(1) {
-    //     int ptr = 0;
-    //     int k = 0; 
-    //     for(int j=0; j<strlen(matched[0]); j++) {
-    //         if (matched[0][j] != ':') {
-    //             ref[ptr][k] = matched[0][j];
-    //             k++;
-    //         } else {
-    //             ptr++;
-    //             k = 0;
-    //         }
-    //     }
-    //     break;          //this is done so the variable k and ptr holds block scope
-    // }
-
-    if(is_and) {} else {
-        for(int i=0; i<10 && strcmp(matched[i], "") != 0; i++) {
-            strcat(ret_val, matched[i]);
-            strcat(ret_val, ":");
+    
+    for(int i=0; i<10 && strcmp(matched[i], "") != 0; i++) {    //joining all the mathced values in single `ret_val`
+        strcat(ret_val, matched[i]);
+        strcat(ret_val, ":");
+    }
+    char ret_arr[256][256] = {};
+        
+    while(1) {                                      //exploding all the row
+        int i=0, k=0;
+        for(int j=0; j<strlen(ret_val); j++) {
+            if (ret_val[j] == ':') {
+                i++;
+                k=0;
+            } else {
+                ret_arr[i][k] = ret_val[j];
+                k++;
+            }
         }
+        break;
+    }
 
-        char ret_arr[256][256] = {};
-        while(1) {
-            int i=0, k=0;
-            for(int j=0; j<strlen(ret_val); j++) {
-                if (ret_val[j] == ':') {
-                    i++;
-                    k=0;
-                } else {
-                    ret_arr[i][k] = ret_val[j];
-                    k++;
+    if(is_and) {
+        for(int j=0; strcmp(ret_arr[j], "") !=0; j++) {     //if the row already exists remove it
+            int found = 0;
+            for(int k=j+1; strcmp(ret_arr[k], "") !=0; k++) {
+                if(strcmp(ret_arr[j], ret_arr[k]) == 0) {
+                    found = 1;
+                    break;
                 }
             }
-            break;
+            if(!found) {
+                strcpy(ret_arr[j], "");
+            }
         }
-
-        for(int j=0; strcmp(ret_arr[j], "") !=0; j++) {
+        
+    } else {
+        for(int j=0; strcmp(ret_arr[j], "") !=0; j++) {     //if the row already exists remove it
             for(int k=j+1; strcmp(ret_arr[k], "") !=0; k++) {
                 if(strcmp(ret_arr[j], ret_arr[k]) == 0) {
                     strcpy(ret_arr[j], "");
@@ -429,17 +428,44 @@ FIELD get_row(char name[], char condition[]) {
                 }
             }     
         }
+    }
 
-        for(int i=0; i<256; i++) {
-            if(strcmp(ret_arr[i], "") == 0) {
+    for(int i=0; i<256; i++) {                  //appending into the `retrn.values`
+        if(strcmp(ret_arr[i], "") == 0) {
+            continue;
+        }
+        strcat(retrn.values, ret_arr[i]);
+        strcat(retrn.values, ":");
+    }
+    retrn.values[strlen(retrn.values)-1] = '\0';    //removing the last character
+    
+    while(1) {
+        char to_filter[256][256] = {};
+        explode(retrn.values, ':', to_filter);
+
+        for(int i=0; strcmp(to_filter[i], "") != 0; i++) {
+            for(int j=i+1; strcmp(to_filter[j], "") !=0; j++) {
+                if(strcmp(to_filter[j], to_filter[i]) == 0) {
+                    strcpy(to_filter[i], "");
+                    break;
+                }
+            }
+        } 
+        
+        strcpy(retrn.values, "");
+
+        for(int i=0; i<256; i++) {                  //appending into the `retrn.values`
+            if(strcmp(to_filter[i], "") == 0) {
                 continue;
             }
-            strcat(retrn.values, ret_arr[i]);
+            strcat(retrn.values, to_filter[i]);
             strcat(retrn.values, ":");
         }
-        retrn.values[strlen(retrn.values)-1] = '\0';
+        retrn.values[strlen(retrn.values)-1] = '\0';    //removing the last character
+        
+        break;
     }
-    
+
     return retrn;
 }
 
