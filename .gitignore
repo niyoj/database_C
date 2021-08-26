@@ -14,3 +14,6 @@ main.c
 
 #Un-ignoring some files
 !.db/tables/.gitkeep
+
+#Ignoring VS Code configuration folder
+.vscode/

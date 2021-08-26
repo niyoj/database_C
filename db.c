@@ -61,6 +61,7 @@ int create_table(char [], char [], char []);
 int delete_table(char []);
 int insert_row(char [], char [], char []);
 FIELD get_row(char [], char []);
+int update_row(char [], char [], char[], char []);
 
 
 //definition section
@@ -297,7 +298,6 @@ FIELD get_row(char name[], char condition[]) {
     strcpy(retrn.values, "");
 
     char src[256] = {}, header[256] = {}, values[256] = {};
-    strcpy(values, "");
 
     strcpy(src, DB);            //setting up the path of table
     strcat(src, "tables/");
@@ -324,9 +324,13 @@ FIELD get_row(char name[], char condition[]) {
     explode(header, ',', e_header);
     explode(condition, ',', e_case);
 
+    char matched[10][10000] = {};                                        //can record 10 test cases in total
+    
+    int cases = 0;
     for(int i=0; e_case[i][0] != ';' && e_case[i][0] != ':'; i+=2) {    //repeat until the condition statement is evaluated completely
         int lines = 0;
         int pos = 0;
+        cases++;                                              //records total number of test cases
 
         for(int j=0; e_header[j][0] != '\0'; j++) {           //determines the postion of column to evaluate
             if (strcmp(e_case[i], e_header[j]) == 0) {
@@ -350,8 +354,8 @@ FIELD get_row(char name[], char condition[]) {
                 
                 explode(values, ',', e_val);
                 if(strcmp(e_val[pos], e_case[i+1]) == 0) {      //checking whether the test case given matches the data in the row
-                    strcat(retrn.values, values);
-                    strcat(retrn.values, ":");
+                    strcat(matched[i/2], values);
+                    strcat(matched[i/2], ":");
 
                     if(ch == EOF) break; else continue;
                 }
@@ -371,9 +375,75 @@ FIELD get_row(char name[], char condition[]) {
                 j++;
             }
         }
+        matched[i][strlen(matched[i])-1] = '\0';           //removing : from the end
+        fseek(handle, 0, SEEK_SET);
     }
+    matched[cases-1][strlen(matched[cases-1])-1] = '\0';   //removing : from the end
 
-    retrn.values[strlen(retrn.values)-1] = '\0';           //removing : from the end
+    int is_and = (condition[strlen(condition)-1] == ';')? 1 : 0;
+    
+
+    // char ref[256][10000] = {};
+    char ret_val[10000] = {};
+    // while(1) {
+    //     int ptr = 0;
+    //     int k = 0; 
+    //     for(int j=0; j<strlen(matched[0]); j++) {
+    //         if (matched[0][j] != ':') {
+    //             ref[ptr][k] = matched[0][j];
+    //             k++;
+    //         } else {
+    //             ptr++;
+    //             k = 0;
+    //         }
+    //     }
+    //     break;          //this is done so the variable k and ptr holds block scope
+    // }
+
+    if(is_and) {} else {
+        for(int i=0; i<10 && strcmp(matched[i], "") != 0; i++) {
+            strcat(ret_val, matched[i]);
+            strcat(ret_val, ":");
+        }
+
+        char ret_arr[256][256] = {};
+        while(1) {
+            int i=0, k=0;
+            for(int j=0; j<strlen(ret_val); j++) {
+                if (ret_val[j] == ':') {
+                    i++;
+                    k=0;
+                } else {
+                    ret_arr[i][k] = ret_val[j];
+                    k++;
+                }
+            }
+            break;
+        }
+
+        for(int j=0; strcmp(ret_arr[j], "") !=0; j++) {
+            for(int k=j+1; strcmp(ret_arr[k], "") !=0; k++) {
+                if(strcmp(ret_arr[j], ret_arr[k]) == 0) {
+                    strcpy(ret_arr[j], "");
+                    break;
+                }
+            }     
+        }
+
+        for(int i=0; i<256; i++) {
+            if(strcmp(ret_arr[i], "") == 0) {
+                continue;
+            }
+            strcat(retrn.values, ret_arr[i]);
+            strcat(retrn.values, ":");
+        }
+        retrn.values[strlen(retrn.values)-1] = '\0';
+    }
     
     return retrn;
+}
+
+//function `update_row()` is used to update the row where condition is met
+int update_row(char name[], char condition[], char fields[], char values[]) {
+
 }
